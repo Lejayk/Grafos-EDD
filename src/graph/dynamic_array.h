@@ -102,6 +102,28 @@ public:
         errorState = OK;
     }
 
+    // intercambia el contenido de dos arreglos moviendo punteros, sin copiar
+    // ni pedir memoria. sirve para reemplazar de golpe el contenido de un
+    // arreglo por otro ya construido: no puede fallar y no deja al objeto en
+    // un estado intermedio si el sistema se queda sin memoria.
+    void swap(DynamicArray& other) {
+        T* otherItems = other.items;
+        other.items = items;
+        items = otherItems;
+
+        std::size_t otherCount = other.count;
+        other.count = count;
+        count = otherCount;
+
+        std::size_t otherCapacity = other.capacityValue;
+        other.capacityValue = capacityValue;
+        capacityValue = otherCapacity;
+
+        Status otherError = other.errorState;
+        other.errorState = errorState;
+        errorState = otherError;
+    }
+
 private:
     T* items;
     std::size_t count;
