@@ -16,6 +16,7 @@ enum Status {
     INVALID_WEIGHT,
     CAPACITY_OVERFLOW,
     OUT_OF_MEMORY,
+    EMPTY_CONTAINER,
     EMPTY_GRAPH,
     NO_PATH,
     NOT_DIRECTED,
@@ -35,6 +36,7 @@ inline const char* statusMessage(Status status) {
         case INVALID_WEIGHT:      return "peso invalido: no se admiten pesos negativos";
         case CAPACITY_OVERFLOW:   return "desbordamiento de capacidad";
         case OUT_OF_MEMORY:       return "no hay memoria disponible";
+        case EMPTY_CONTAINER:     return "el contenedor esta vacio";
         case EMPTY_GRAPH:         return "el grafo esta vacio";
         case NO_PATH:             return "no existe camino entre los nodos indicados";
         case NOT_DIRECTED:        return "la operacion requiere un grafo dirigido";
