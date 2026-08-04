@@ -57,6 +57,39 @@ public:
         return OK;
     }
 
+    // saca un nodo del grafo junto con todas sus aristas.
+    // hay que eliminar su fila y su columna, y ademas los nodos que estaban
+    // despues pasan a ocupar una posicion menos. es mas simple y mas seguro
+    // reconstruir la matriz de (n-1)x(n-1) salteando esa fila y esa columna
+    // que intentar mover celdas de a una.
+    Status removeNode(const T& value) {
+        std::size_t target = indexOf(value);
+        if (target == NO_INDEX) return NODE_NOT_FOUND;
+
+        std::size_t oldSize = values.size();
+        std::size_t newSize = oldSize - 1;
+
+        DynamicArray<Cell> rebuilt;
+        if (newSize > 0) {
+            Status status = rebuilt.reserve(newSize * newSize);
+            if (status != OK) return status;
+
+            for (std::size_t row = 0; row < oldSize; ++row) {
+                if (row == target) continue;
+                for (std::size_t column = 0; column < oldSize; ++column) {
+                    if (column == target) continue;
+                    Cell existing;
+                    cells.get(row * oldSize + column, existing);
+                    rebuilt.pushBack(existing);
+                }
+            }
+        }
+
+        values.removeAt(target);
+        cells.swap(rebuilt);
+        return OK;
+    }
+
     // agrega una arista entre dos nodos identificados por su valor.
     // si la arista ya existia, actualiza el peso en lugar de duplicarla: una
     // matriz de adyacencia no puede representar dos aristas entre el mismo par.
