@@ -60,6 +60,43 @@ public:
         return OK;
     }
 
+    // saca un nodo del grafo junto con todas sus aristas.
+    // hay dos cosas que arreglar: las aristas que APUNTABAN al nodo borrado
+    // quedan colgadas y hay que sacarlas de las listas de los demas, y los
+    // indices mayores al borrado se corren un lugar, asi que las aristas que
+    // los referencian tienen que corregir su destino.
+    Status removeNode(const T& value) {
+        std::size_t target = indexOf(value);
+        if (target == NO_INDEX) return NODE_NOT_FOUND;
+
+        releaseChain(headAt(target));
+        heads.removeAt(target);
+        values.removeAt(target);
+
+        for (std::size_t i = 0; i < heads.size(); ++i) {
+            EdgeNode* head = headAt(i);
+            EdgeNode* previous = 0;
+            EdgeNode* current = head;
+            while (current != 0) {
+                EdgeNode* next = current->next;
+                if (current->target == target) {
+                    if (previous == 0) {
+                        head = next;
+                    } else {
+                        previous->next = next;
+                    }
+                    delete current;
+                } else {
+                    if (current->target > target) --current->target;
+                    previous = current;
+                }
+                current = next;
+            }
+            heads.set(i, head);
+        }
+        return OK;
+    }
+
     // agrega una arista entre dos nodos identificados por su valor.
     // si ya existia, actualiza el peso en lugar de duplicarla.
     Status addEdge(const T& from, const T& to, double weight = 1.0) {
