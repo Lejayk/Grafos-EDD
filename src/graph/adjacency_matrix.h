@@ -57,7 +57,87 @@ public:
         return OK;
     }
 
+    // agrega una arista entre dos nodos identificados por su valor.
+    // si la arista ya existia, actualiza el peso en lugar de duplicarla: una
+    // matriz de adyacencia no puede representar dos aristas entre el mismo par.
+    Status addEdge(const T& from, const T& to, double weight = 1.0) {
+        std::size_t origin = indexOf(from);
+        std::size_t target = indexOf(to);
+        if (origin == NO_INDEX || target == NO_INDEX) return NODE_NOT_FOUND;
+        return addEdgeAt(origin, target, weight);
+    }
+
+    Status removeEdge(const T& from, const T& to) {
+        std::size_t origin = indexOf(from);
+        std::size_t target = indexOf(to);
+        if (origin == NO_INDEX || target == NO_INDEX) return NODE_NOT_FOUND;
+        return removeEdgeAt(origin, target);
+    }
+
+    // version por indice, para quien ya resolvio los nodos.
+    // en un grafo no dirigido la arista se escribe en las dos celdas.
+    Status addEdgeAt(std::size_t from, std::size_t to, double weight = 1.0) {
+        if (!inRange(from) || !inRange(to)) return INDEX_OUT_OF_RANGE;
+        Status status = GraphBase<T>::validateWeight(weight);
+        if (status != OK) return status;
+        writeCell(from, to, true, weight);
+        if (!this->isDirected()) writeCell(to, from, true, weight);
+        return OK;
+    }
+
+    Status removeEdgeAt(std::size_t from, std::size_t to) {
+        if (!inRange(from) || !inRange(to)) return INDEX_OUT_OF_RANGE;
+        if (!readCell(from, to).present) return EDGE_NOT_FOUND;
+        writeCell(from, to, false, 0.0);
+        if (!this->isDirected()) writeCell(to, from, false, 0.0);
+        return OK;
+    }
+
     std::size_t nodeCount() const { return values.size(); }
+
+    // en un grafo no dirigido cada arista ocupa dos celdas, asi que contarlas
+    // todas daria el doble. mirando solo la mitad superior de la matriz
+    // (columna >= fila) cada arista se cuenta una vez, y los self-loops, que
+    // caen en la diagonal, tambien quedan contados una sola vez.
+    std::size_t edgeCount() const {
+        std::size_t size = values.size();
+        std::size_t total = 0;
+        for (std::size_t row = 0; row < size; ++row) {
+            for (std::size_t column = 0; column < size; ++column) {
+                if (!this->isDirected() && column < row) continue;
+                if (readCell(row, column).present) ++total;
+            }
+        }
+        return total;
+    }
+
+    bool hasEdgeAt(std::size_t from, std::size_t to) const {
+        if (!inRange(from) || !inRange(to)) return false;
+        return readCell(from, to).present;
+    }
+
+    Status weightAt(std::size_t from, std::size_t to, double& out) const {
+        if (!inRange(from) || !inRange(to)) return INDEX_OUT_OF_RANGE;
+        Cell cell = readCell(from, to);
+        if (!cell.present) return EDGE_NOT_FOUND;
+        out = cell.weight;
+        return OK;
+    }
+
+    // recorre la fila del nodo y devuelve los indices de sus vecinos.
+    // en un grafo dirigido son los sucesores, es decir a donde se puede ir
+    // desde ese nodo.
+    Status neighborsAt(std::size_t index, DynamicArray<std::size_t>& out) const {
+        if (!inRange(index)) return INDEX_OUT_OF_RANGE;
+        out.clear();
+        for (std::size_t column = 0; column < values.size(); ++column) {
+            if (readCell(index, column).present) {
+                Status status = out.pushBack(column);
+                if (status != OK) return status;
+            }
+        }
+        return OK;
+    }
 
     // devuelve la posicion del nodo o NO_INDEX si no esta.
     std::size_t indexOf(const T& value) const {
