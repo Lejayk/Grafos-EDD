@@ -227,8 +227,8 @@ private:
         std::size_t target;
         double weight;
         EdgeNode* next;
-        EdgeNode(std::size_t target, double weight)
-            : target(target), weight(weight), next(0) {}
+        EdgeNode(std::size_t targetIndex, double edgeWeight)
+            : target(targetIndex), weight(edgeWeight), next(0) {}
     };
 
     DynamicArray<T> values;
