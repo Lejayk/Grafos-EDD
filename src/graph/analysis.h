@@ -151,6 +151,121 @@ Status hasPath(const GraphBase<T>& graph, const T& from, const T& to, bool& out)
     return hasPathAt(graph, origin, target, out);
 }
 
+// ordena los nodos de un grafo dirigido de forma que toda arista vaya de un
+// nodo anterior a uno posterior. sirve para secuenciar tareas con dependencias.
+//
+// usa el algoritmo de Kahn: se empieza por los nodos sin nadie que les apunte y
+// cada vez que se saca uno se descuenta a sus sucesores. si al final quedaron
+// nodos sin sacar es porque se apuntan entre ellos en circulo.
+//
+// solo tiene sentido en grafos dirigidos: en uno no dirigido cada arista iria
+// en los dos sentidos y nunca habria un orden valido.
+template <typename T>
+Status topologicalOrder(const GraphBase<T>& graph, DynamicArray<std::size_t>& out) {
+    if (!graph.isDirected()) return NOT_DIRECTED;
+    std::size_t size = graph.nodeCount();
+    if (size == 0) return EMPTY_GRAPH;
+
+    // cuantas aristas entran a cada nodo. se llena a mano con ceros porque un
+    // arreglo recien reservado no tiene sus elementos inicializados.
+    DynamicArray<std::size_t> incoming;
+    Status status = incoming.reserve(size);
+    if (status != OK) return status;
+    for (std::size_t i = 0; i < size; ++i) {
+        status = incoming.pushBack(0);
+        if (status != OK) return status;
+    }
+
+    DynamicArray<std::size_t> neighbors;
+    for (std::size_t node = 0; node < size; ++node) {
+        status = graph.neighborsAt(node, neighbors);
+        if (status != OK) return status;
+        for (std::size_t i = 0; i < neighbors.size(); ++i) {
+            std::size_t target = 0;
+            neighbors.get(i, target);
+            std::size_t count = 0;
+            incoming.get(target, count);
+            incoming.set(target, count + 1);
+        }
+    }
+
+    Queue<std::size_t> ready;
+    for (std::size_t node = 0; node < size; ++node) {
+        std::size_t count = 0;
+        incoming.get(node, count);
+        if (count == 0) {
+            status = ready.enqueue(node);
+            if (status != OK) return status;
+        }
+    }
+
+    out.clear();
+    while (!ready.empty()) {
+        std::size_t current = 0;
+        ready.dequeue(current);
+        status = out.pushBack(current);
+        if (status != OK) return status;
+
+        status = graph.neighborsAt(current, neighbors);
+        if (status != OK) return status;
+        for (std::size_t i = 0; i < neighbors.size(); ++i) {
+            std::size_t target = 0;
+            neighbors.get(i, target);
+            std::size_t count = 0;
+            incoming.get(target, count);
+            // con un grafo consistente count nunca es 0 aca, pero restarle 1 a
+            // un size_t en 0 daria la vuelta a un numero enorme, asi que se
+            // corta antes en lugar de confiar.
+            if (count == 0) continue;
+            --count;
+            incoming.set(target, count);
+            if (count == 0) {
+                status = ready.enqueue(target);
+                if (status != OK) return status;
+            }
+        }
+    }
+
+    if (out.size() != size) {
+        // quedaron nodos atrapados en un ciclo: no hay orden posible.
+        out.clear();
+        return HAS_CYCLE;
+    }
+    return OK;
+}
+
+// tiene el grafo algun ciclo?
+//
+// dirigido: se intenta ordenar topologicamente. si no se puede, hay ciclo.
+//
+// no dirigido: se usa una propiedad de los bosques. un grafo sin ciclos con n
+// nodos y c componentes tiene exactamente n - c aristas, porque cada componente
+// es un arbol. cualquier arista de mas cierra un ciclo. un self-loop tambien
+// cuenta, porque suma una arista sin unir componentes distintos.
+template <typename T>
+Status hasCycle(const GraphBase<T>& graph, bool& out) {
+    std::size_t size = graph.nodeCount();
+    if (size == 0) return EMPTY_GRAPH;
+
+    if (graph.isDirected()) {
+        DynamicArray<std::size_t> order;
+        Status status = topologicalOrder(graph, order);
+        if (status == HAS_CYCLE) {
+            out = true;
+            return OK;
+        }
+        if (status != OK) return status;
+        out = false;
+        return OK;
+    }
+
+    std::size_t components = 0;
+    Status status = connectedComponents(graph, components);
+    if (status != OK) return status;
+    out = graph.edgeCount() > size - components;
+    return OK;
+}
+
 }
 
 #endif
