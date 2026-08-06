@@ -43,8 +43,10 @@ public:
     std::size_t capacity() const { return capacityValue; }
     bool empty() const { return count == 0; }
 
-    // un constructor de copia no puede devolver Status, asi que si la copia se
-    // queda sin memoria el error se guarda aca. revisalo despues de copiar.
+    // guarda el ultimo fallo de las operaciones que no pueden devolver Status
+    // por si mismas: el constructor de copia, el operator= y el constructor
+    // que recibe una capacidad inicial. revisalo despues de cualquiera de esos
+    // tres. las demas operaciones devuelven su Status directamente.
     Status lastError() const { return errorState; }
 
     // reserva espacio para al menos newCapacity elementos.
@@ -106,7 +108,7 @@ public:
     // ni pedir memoria. sirve para reemplazar de golpe el contenido de un
     // arreglo por otro ya construido: no puede fallar y no deja al objeto en
     // un estado intermedio si el sistema se queda sin memoria.
-    void swap(DynamicArray& other) {
+    void swap(DynamicArray& other) noexcept {
         T* otherItems = other.items;
         other.items = items;
         items = otherItems;

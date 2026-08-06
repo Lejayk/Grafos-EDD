@@ -237,7 +237,16 @@ private:
 
     bool inRange(std::size_t index) const { return index < values.size(); }
 
-    EdgeNode* headAt(std::size_t index) const {
+    // dos versiones a proposito: desde un metodo const solo se puede obtener un
+    // puntero const, para que nadie pueda modificar las listas internas a
+    // traves de una referencia const al grafo.
+    EdgeNode* headAt(std::size_t index) {
+        EdgeNode* head = 0;
+        heads.get(index, head);
+        return head;
+    }
+
+    const EdgeNode* headAt(std::size_t index) const {
         EdgeNode* head = 0;
         heads.get(index, head);
         return head;
@@ -332,7 +341,9 @@ private:
         for (std::size_t i = 0; i < other.heads.size(); ++i) {
             EdgeNode* head = 0;
             EdgeNode* tail = 0;
-            for (EdgeNode* source = other.headAt(i); source != 0; source = source->next) {
+            // se lee de other, que es const, asi que el puntero de lectura
+            // tambien es const: de ahi solo se copian valores.
+            for (const EdgeNode* source = other.headAt(i); source != 0; source = source->next) {
                 EdgeNode* copy = new (std::nothrow) EdgeNode(source->target, source->weight);
                 if (copy == 0) {
                     releaseChain(head);

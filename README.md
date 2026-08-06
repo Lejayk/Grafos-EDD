@@ -109,7 +109,11 @@ están implementadas desde cero.
 sin más.
 
 Los pesos son `double` y valen 1.0 si no los indicás, así que un grafo sin pesos
-funciona sin tratarlo distinto.
+funciona sin tratarlo distinto. Tienen que ser finitos y no negativos: `addEdge`
+rechaza los negativos, los infinitos y los que no son un número. Ese último caso
+importa más de lo que parece, porque cualquier comparación contra un `NaN` da
+falso y se colaría sin romper nada visible, envenenando en silencio todos los
+cálculos de distancia.
 
 ---
 
@@ -167,6 +171,12 @@ if (resultado != graph::OK) {
 La razón es simple: una excepción sin capturar termina el programa. Con un código
 de retorno el error es un valor que se puede revisar y manejar.
 
+Una aclaración honesta: la librería no lanza **por sí misma**, ni siquiera cuando
+se queda sin memoria. Lo que no puede prometer es por tu tipo. Si el constructor
+de copia o el `operator=` de tu `T` lanzan, esa excepción atraviesa la librería
+hasta vos. Es inevitable con plantillas: no se puede garantizar el comportamiento
+de un tipo que uno no escribió.
+
 | Código | Cuándo |
 | --- | --- |
 | `OK` | todo bien |
@@ -174,7 +184,7 @@ de retorno el error es un valor que se puede revisar y manejar.
 | `NODE_ALREADY_EXISTS` | ya hay un nodo con ese valor |
 | `EDGE_NOT_FOUND` | la arista no existe |
 | `INDEX_OUT_OF_RANGE` | índice fuera de rango |
-| `INVALID_WEIGHT` | peso negativo |
+| `INVALID_WEIGHT` | peso negativo, infinito, o que no es un número |
 | `CAPACITY_OVERFLOW` | el tamaño pedido desborda el tipo |
 | `OUT_OF_MEMORY` | no hay memoria |
 | `EMPTY_CONTAINER` | se pidió sacar de una cola o pila vacía |

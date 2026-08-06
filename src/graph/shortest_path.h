@@ -247,6 +247,11 @@ Status shortestPathUnweightedAt(const GraphBase<T>& graph, std::size_t from, std
 template <typename T>
 Status shortestPath(const GraphBase<T>& graph, const T& from, const T& to,
                     DynamicArray<std::size_t>& path, double& distance) {
+    // las salidas se dejan definidas tambien aca: si el nodo no existe se
+    // vuelve antes de llegar a la version por indice, y sin esto quien llamo se
+    // quedaria con lo que tuviera de antes.
+    path.clear();
+    distance = UNREACHABLE;
     std::size_t origin = graph.indexOf(from);
     std::size_t target = graph.indexOf(to);
     if (origin == NO_INDEX || target == NO_INDEX) return NODE_NOT_FOUND;
@@ -256,6 +261,8 @@ Status shortestPath(const GraphBase<T>& graph, const T& from, const T& to,
 template <typename T>
 Status shortestPathUnweighted(const GraphBase<T>& graph, const T& from, const T& to,
                               DynamicArray<std::size_t>& path, std::size_t& hops) {
+    path.clear();
+    hops = 0;
     std::size_t origin = graph.indexOf(from);
     std::size_t target = graph.indexOf(to);
     if (origin == NO_INDEX || target == NO_INDEX) return NODE_NOT_FOUND;
@@ -266,6 +273,8 @@ template <typename T>
 Status dijkstra(const GraphBase<T>& graph, const T& from,
                 DynamicArray<double>& distances,
                 DynamicArray<std::size_t>& previous) {
+    distances.clear();
+    previous.clear();
     std::size_t origin = graph.indexOf(from);
     if (origin == NO_INDEX) return NODE_NOT_FOUND;
     return dijkstraAt(graph, origin, distances, previous);

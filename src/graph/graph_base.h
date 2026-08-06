@@ -2,6 +2,7 @@
 #define GRAPH_GRAPH_BASE_H
 
 #include <cstddef>
+#include <cfloat>
 #include "status.h"
 #include "dynamic_array.h"
 
@@ -9,6 +10,10 @@ namespace graph {
 
 // indice que se devuelve cuando un nodo buscado no existe.
 const std::size_t NO_INDEX = static_cast<std::size_t>(-1);
+
+// tope para el peso de una arista. el valor mas grande de un double queda
+// reservado como marca de "no se puede llegar" en el camino mas corto.
+const double MAX_WEIGHT = DBL_MAX;
 
 // contrato comun a toda implementacion de grafo de esta libreria.
 // de aca derivan AdjacencyList y AdjacencyMatrix, y gracias a eso los
@@ -20,7 +25,13 @@ const std::size_t NO_INDEX = static_cast<std::size_t>(-1);
 //   - operator== para poder buscar un nodo por su valor
 //   - operator<< solo si se usan las funciones de impresion
 //
-// ningun metodo lanza excepciones: lo que puede fallar devuelve un Status.
+// la libreria no lanza excepciones por si misma: todo lo que puede fallar de
+// su lado devuelve un Status, incluidas las fallas de memoria.
+//
+// lo que si puede pasar es que T lance desde su propio constructor de copia o
+// su operator=, y esa excepcion atraviesa la libreria hasta quien llamo. es
+// inevitable con plantillas: no se puede prometer por un tipo que uno no
+// escribio. si te importa que nada lance, usa un T cuyas copias no lancen.
 template <typename T>
 class GraphBase {
 public:
@@ -83,8 +94,18 @@ protected:
 
     // dijkstra da resultados incorrectos con pesos negativos, asi que se
     // rechazan en la puerta de entrada en vez de fallar en silencio despues.
+    //
+    // la condicion esta escrita como "no es mayor o igual a cero" y no como
+    // "es menor que cero" a proposito: cualquier comparacion contra un NaN da
+    // false, asi que un peso NaN pasaria el filtro "weight < 0.0" y despues
+    // envenenaria en silencio todas las comparaciones de distancia.
+    //
+    // tambien se rechazan los pesos desmedidos: la libreria usa el valor mas
+    // grande de un double como marca de "inalcanzable", asi que una arista con
+    // ese peso se confundiria con la ausencia de camino.
     static Status validateWeight(double weight) {
-        if (weight < 0.0) return INVALID_WEIGHT;
+        if (!(weight >= 0.0)) return INVALID_WEIGHT;
+        if (weight >= MAX_WEIGHT) return INVALID_WEIGHT;
         return OK;
     }
 };
