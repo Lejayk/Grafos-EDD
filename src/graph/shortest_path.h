@@ -84,6 +84,9 @@ template <typename T>
 Status dijkstraAt(const GraphBase<T>& graph, std::size_t from,
                   DynamicArray<double>& distances,
                   DynamicArray<std::size_t>& previous) {
+    distances.clear();
+    previous.clear();
+
     std::size_t size = graph.nodeCount();
     if (size == 0) return EMPTY_GRAPH;
     if (from >= size) return INDEX_OUT_OF_RANGE;
@@ -118,7 +121,12 @@ Status dijkstraAt(const GraphBase<T>& graph, std::size_t from,
             std::size_t next = 0;
             neighbors.get(i, next);
             double weight = 0.0;
-            if (graph.weightAt(current, next, weight) != OK) continue;
+            // el vecino vino de neighborsAt, asi que la arista tiene que
+            // existir. si weightAt falla, el grafo esta internamente
+            // inconsistente: se avisa en lugar de saltear la arista y devolver
+            // una distancia incorrecta sin que nadie se entere.
+            status = graph.weightAt(current, next, weight);
+            if (status != OK) return status;
 
             // si sumar el peso pasaria el limite del tipo, ese camino se trata
             // como inalcanzable en lugar de producir un numero sin sentido.
@@ -144,6 +152,12 @@ Status dijkstraAt(const GraphBase<T>& graph, std::size_t from,
 template <typename T>
 Status shortestPathAt(const GraphBase<T>& graph, std::size_t from, std::size_t to,
                       DynamicArray<std::size_t>& path, double& distance) {
+    // los parametros de salida quedan definidos desde el arranque: ante
+    // cualquier error, quien llama recibe ruta vacia y distancia inalcanzable,
+    // no lo que tuviera antes en esas variables.
+    path.clear();
+    distance = UNREACHABLE;
+
     std::size_t size = graph.nodeCount();
     if (size == 0) return EMPTY_GRAPH;
     if (from >= size || to >= size) return INDEX_OUT_OF_RANGE;
@@ -155,12 +169,14 @@ Status shortestPathAt(const GraphBase<T>& graph, std::size_t from, std::size_t t
 
     double total = UNREACHABLE;
     distances.get(to, total);
-    if (total == UNREACHABLE) {
-        path.clear();
-        return NO_PATH;
-    }
+    if (total == UNREACHABLE) return NO_PATH;
+
+    status = rebuildPath(previous, from, to, path);
+    if (status != OK) return status;
+    // la distancia se entrega recien cuando el camino quedo reconstruido, para
+    // que nunca haya una ruta vacia con una distancia puesta al lado.
     distance = total;
-    return rebuildPath(previous, from, to, path);
+    return OK;
 }
 
 // camino mas corto ignorando los pesos: el que pasa por menos aristas.
@@ -171,6 +187,10 @@ Status shortestPathAt(const GraphBase<T>& graph, std::size_t from, std::size_t t
 template <typename T>
 Status shortestPathUnweightedAt(const GraphBase<T>& graph, std::size_t from, std::size_t to,
                                 DynamicArray<std::size_t>& path, std::size_t& hops) {
+    // mismo criterio que la version ponderada: salida definida siempre.
+    path.clear();
+    hops = 0;
+
     std::size_t size = graph.nodeCount();
     if (size == 0) return EMPTY_GRAPH;
     if (from >= size || to >= size) return INDEX_OUT_OF_RANGE;

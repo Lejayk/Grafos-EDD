@@ -296,6 +296,11 @@ resultado incorrecto sin decir nada.
 `dijkstra` deja las distancias a todos los nodos desde un origen. Los
 inalcanzables quedan en `UNREACHABLE`.
 
+Los parámetros de salida quedan siempre en un estado definido: si la función no
+devuelve `OK`, la ruta viene vacía, la distancia en `UNREACHABLE` y los saltos en
+cero. Nunca conservan lo que hubiera antes en esas variables, así que no hace
+falta inicializarlas antes de llamar.
+
 ---
 
 ## Autores
