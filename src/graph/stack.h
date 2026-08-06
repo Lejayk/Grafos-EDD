@@ -74,7 +74,7 @@ private:
     struct Node {
         T value;
         Node* next;
-        explicit Node(const T& value) : value(value), next(0) {}
+        explicit Node(const T& nodeValue) : value(nodeValue), next(0) {}
     };
 
     Node* head;
