@@ -61,6 +61,18 @@ g++ -std=c++11 -Wall -Wextra -Isrc src/main.cpp -o bin/grafos_demo
 Lo único que hay que pasarle al compilador es `-Isrc`. No hay nada más que
 enlazar.
 
+El ejecutable que viene en `bin/` se genera con dos banderas más:
+
+```bash
+g++ -std=c++11 -Wall -Wextra -static -s -Isrc src/main.cpp -o bin/grafos_demo
+```
+
+`-static` incrusta las bibliotecas del compilador dentro del programa, para que
+corra en cualquier máquina sin necesidad de tener MinGW instalado. Sin eso el
+ejecutable busca `libstdc++-6.dll` y `libgcc_s_dw2-1.dll` al arrancar y no abre
+en una máquina que no las tenga. `-s` quita los símbolos de depuración, que
+sobran en el binario final.
+
 ---
 
 ## Estructura
